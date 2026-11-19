@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151419">
+  <title>Harness — визуальный редактор процессов</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" data-icon="brand"></span><strong>Harness</strong><span class="version">DEMO</span></div>
+      <div class="top-main">
+        <div class="breadcrumb"><span class="project-icon" data-icon="layers"></span><span class="workspace-name">Продуктовая студия</span><span class="crumb-arrow" data-icon="chevron-right"></span><strong>От идеи к прототипу</strong></div>
+        <div class="top-actions">
+          <span class="draft"><i></i>Демонстрационный режим</span>
+          <button id="more" class="button icon-button more" aria-label="Действия со сценарием" aria-expanded="false" data-icon="more"></button>
+          <div id="more-menu" class="popover" hidden><button id="reset" class="button"><span data-icon="reset"></span>Сбросить демо</button></div>
+          <button id="run" class="button primary"><span data-icon="play"></span><span id="run-label">Запустить демо</span></button>
+        </div>
+      </div>
+    </header>
+    <div class="workspace">
+      <aside class="library" aria-label="Библиотека блоков">
+        <div class="library-top">
+          <div class="library-heading"><h2>Библиотека</h2><span data-icon="panel"></span></div>
+          <label class="search"><span data-icon="search"></span><input id="search" type="search" placeholder="Найти блок…" aria-label="Найти блок"><kbd>/</kbd></label>
+        </div>
+        <div id="library-list" class="library-list"></div>
+        <div class="library-tip"><span data-icon="mouse"></span><div><strong>Добавить блок</strong><p>Перетащите на холст или нажмите на блок</p></div></div>
+      </aside>
+      <main class="editor" aria-label="Редактор сценария">
+        <nav class="view-tabs" aria-label="Виды сценария">
+          <button class="tab active" data-view="canvas"><span data-icon="workflow"></span>Холст</button>
+          <button class="tab" data-view="runs"><span data-icon="history"></span>Запуски</button>
+          <button class="tab" data-view="prototype"><span data-icon="layout"></span>Прототип</button>
+          <button id="mobile-inspector" class="button icon-button mobile-inspector" aria-label="Настройки блока" data-icon="panel"></button>
+        </nav>
+        <section id="canvas-view" class="canvas-view">
+          <div id="canvas" class="canvas" aria-label="Холст со связанными блоками">
+            <div class="canvas-heading">
+              <div class="eyebrow"><i></i> ПРОДУКТОВЫЙ ПАЙПЛАЙН</div>
+              <h1>От идеи к прототипу</h1>
+              <p>Соберите путь от постановки задачи до кликабельного результата.</p>
+            </div>
+            <div id="world" class="world">
+              <div class="source-zone"><div><span data-icon="plug"></span> ИСТОЧНИКИ КОНТЕКСТА</div><span class="zone-label">MCP</span></div>
+              <svg class="wires" aria-hidden="true" width="1" height="1"><defs>
+                <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M 1 1 L 7 4 L 1 7" fill="none" stroke="context-stroke" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></marker>
+              </defs><g id="wires"></g></svg>
+              <div id="nodes"></div>
+            </div>
+            <div class="canvas-tools">
+              <div class="tools-group">
+                <button id="select-tool" class="tool active" title="Выбор (V)" aria-label="Выбор" aria-pressed="true" data-icon="cursor"></button>
+                <button id="pan-tool" class="tool" title="Рука (H)" aria-label="Перемещение холста" aria-pressed="false" data-icon="hand"></button>
+              </div>
+              <div class="tools-group zoom-tools">
+                <button id="zoom-out" class="tool" title="Уменьшить" aria-label="Уменьшить" data-icon="minus"></button>
+                <span id="scale" class="scale">100%</span>
+                <button id="zoom-in" class="tool" title="Увеличить" aria-label="Увеличить" data-icon="plus"></button>
+                <i></i>
+                <button id="fit" class="tool" title="Вместить всё (0)" aria-label="Вместить всё" data-icon="fit"></button>
+              </div>
+              <button id="mobile-library" class="button icon-button mobile-library" aria-label="Выбрать блок" data-icon="plus"></button>
+            </div>
+            <button id="minimap" class="minimap" title="Вернуться ко всему сценарию" aria-label="Вместить весь сценарий"></button>
+          </div>
+        </section>
+        <section id="runs-view" class="secondary-view" hidden></section>
+        <section id="prototype-view" class="secondary-view prototype-view" hidden></section>
+        <footer class="statusbar"><span id="counts"></span><span class="status-tip"><kbd>Space</kbd> + перетаскивание</span><span class="status-right"><i></i> <span id="status-text">Готов к запуску</span></span></footer>
+      </main>
+      <aside id="inspector" class="inspector" aria-label="Настройки блока"></aside>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

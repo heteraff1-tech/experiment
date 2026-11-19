@@ -1,0 +1,15 @@
+{
+  "name": "harness-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "cf build",
+    "deploy": "cf deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^2.0.0-rc.2",
+    "cf": "1.0.0-rc.1",
+    "vite": "^7.0.0"
+  }
+}
