@@ -3,6 +3,7 @@ export const icons = {
   layers: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>',
   'chevron-right': '<path d="m9 6 6 6-6 6"/>',
   more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  bolt: '<path d="m13 2-8 12h6l-1 8 9-12h-6l1-8Z"/>',
   play: '<path d="m8 5 12 7-12 7z" fill="currentColor" stroke="none"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/>',
   panel: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
@@ -111,25 +112,25 @@ export const hypotheses = [
 export function initialGraph() {
   return {
     nodes: [
-      { id: 'task', type: 'task', x: 26, y: 6, value: defaultTask },
-      { id: 'brief', type: 'brief', x: 303, y: 6 },
-      { id: 'validation', type: 'validation', x: 580, y: 6 },
-      { id: 'context', type: 'context', x: 580, y: 179 },
-      { id: 'hypotheses', type: 'hypotheses', x: 303, y: 179 },
-      { id: 'prototype', type: 'prototype', x: 26, y: 179 },
-      { id: 'knowledge', type: 'knowledge', x: 26, y: 363 },
-      { id: 'metrics', type: 'metrics', x: 303, y: 363 },
-      { id: 'research', type: 'research', x: 580, y: 363 }
+      { id: 'task', type: 'task', x: 57, y: 249, value: defaultTask },
+      { id: 'brief', type: 'brief', x: 252, y: 249 },
+      { id: 'validation', type: 'validation', x: 447, y: 249 },
+      { id: 'context', type: 'context', x: 642, y: 249 },
+      { id: 'hypotheses', type: 'hypotheses', x: 837, y: 249 },
+      { id: 'prototype', type: 'prototype', x: 1032, y: 249 },
+      { id: 'knowledge', type: 'knowledge', x: 417, y: 78 },
+      { id: 'metrics', type: 'metrics', x: 597, y: 78 },
+      { id: 'research', type: 'research', x: 777, y: 78 }
     ],
     edges: [
       { from: 'task', out: 'right', to: 'brief', in: 'left' },
       { from: 'brief', out: 'right', to: 'validation', in: 'left' },
-      { from: 'validation', out: 'bottom', to: 'context', in: 'top' },
-      { from: 'context', out: 'left', to: 'hypotheses', in: 'right' },
-      { from: 'hypotheses', out: 'left', to: 'prototype', in: 'right' },
-      { from: 'knowledge', out: 'top', to: 'context', in: 'bottom' },
-      { from: 'metrics', out: 'top', to: 'context', in: 'bottom' },
-      { from: 'research', out: 'top', to: 'context', in: 'bottom' }
+      { from: 'validation', out: 'right', to: 'context', in: 'left' },
+      { from: 'context', out: 'right', to: 'hypotheses', in: 'left' },
+      { from: 'hypotheses', out: 'right', to: 'prototype', in: 'left' },
+      { from: 'knowledge', out: 'bottom', to: 'context', in: 'top' },
+      { from: 'metrics', out: 'bottom', to: 'context', in: 'top' },
+      { from: 'research', out: 'bottom', to: 'context', in: 'top' }
     ]
   };
 }

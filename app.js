@@ -8,21 +8,23 @@ const inspector = $('#inspector');
 const search = $('#search');
 const library = $('.library');
 
-const sizes = { width: 216, node: 108, source: 65 };
+const nodeSize = { width: 82, height: 82 };
+const sourceSize = { width: 158, height: 59 };
 const coordinates = { left: [-1, 0], right: [1, 0], top: [0, -1], bottom: [0, 1] };
 const labels = { left: 'слева', right: 'справа', top: 'сверху', bottom: 'снизу' };
 const layout = {
   task: { out: ['right'] },
   brief: { in: ['left'], out: ['right'] },
-  validation: { in: ['left'], out: ['bottom'] },
-  context: { in: ['top', 'bottom', 'right'], out: ['left'] },
-  hypotheses: { in: ['right'], out: ['left'] },
-  prototype: { in: ['right'] },
-  knowledge: { out: ['top'] },
-  metrics: { out: ['top'] },
-  research: { out: ['top'] }
+  validation: { in: ['left'], out: ['right'] },
+  context: { in: ['left', 'top'], out: ['right'] },
+  hypotheses: { in: ['left'], out: ['right'] },
+  prototype: { in: ['left'] },
+  knowledge: { out: ['bottom'] },
+  metrics: { out: ['bottom'] },
+  research: { out: ['bottom'] }
 };
 const isSource = (node) => catalog[node.type].tag === 'MCP';
+const sizeFor = (node) => isSource(node) ? sourceSize : nodeSize;
 const nodeById = (id) => graph.nodes.find((item) => item.id === id);
 const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -31,7 +33,7 @@ const badge = (item) => '<span class="badge-icon ' + item.color + '">' + icon(it
 const clamp = (number, min, max) => Math.max(min, Math.min(number, max));
 
 let graph = initialGraph();
-let selected = 'task';
+let selected = null;
 let selectedEdge = null;
 let inspectorTab = 'settings';
 let currentView = 'canvas';
@@ -92,14 +94,16 @@ function ports(node) {
 function renderNodes() {
   nodesEl.innerHTML = graph.nodes.map((node) => {
     const item = catalog[node.type];
-    const status = activeRun?.done.includes(node.id) ? '<span class="node-status">' + icon('check') + '</span>' : '';
-    const body = isSource(node)
-      ? badge(item) + '<span class="source-copy"><span class="node-title">' + item.title + '</span><span class="node-description">' + item.description + '</span></span>' + status
-      : '<div class="node-topline">' + badge(item) + status + '<span class="node-tag">' + item.tag + '</span></div>' +
-        '<span class="node-title">' + item.title + '</span><span class="node-description">' + item.description + '</span>';
-    return '<div class="node ' + item.color + (isSource(node) ? ' source' : '') + '"' +
+    const source = isSource(node);
+    const start = node.type === 'task';
+    const done = activeRun?.done.includes(node.id);
+    const status = done ? '<span class="node-status">' + icon('check') + '</span>' : '';
+    const trigger = start ? '<span class="trigger-mark">' + icon('bolt') + '</span>' : '';
+    const copy = '<span class="' + (source ? 'source-copy' : 'node-copy') + '"><span class="node-title">' + item.title +
+      '</span><span class="node-description">' + item.description + '</span></span>';
+    return '<div class="node ' + item.color + (source ? ' source' : '') + (start ? ' start-node' : '') + (done ? ' is-done' : '') + '"' +
       ' role="group" tabindex="0" aria-label="' + item.title + '" data-id="' + node.id + '" style="left:' + node.x + 'px;top:' + node.y + 'px">' +
-      body + ports(node) + '</div>';
+      trigger + badge(item) + copy + status + ports(node) + '</div>';
   }).join('');
   nodeElements = new Map([...nodesEl.children].map((element) => [element.dataset.id, element]));
   styleNodes();
@@ -120,9 +124,9 @@ function styleNodes() {
 }
 
 function portPoint(node, side) {
-  const height = isSource(node) ? sizes.source : sizes.node;
+  const { width, height } = sizeFor(node);
   const [dx, dy] = coordinates[side];
-  return { x: node.x + sizes.width * (1 + dx) / 2, y: node.y + height * (1 + dy) / 2, dx, dy };
+  return { x: node.x + width * (1 + dx) / 2, y: node.y + height * (1 + dy) / 2, dx, dy };
 }
 
 function curve(from, to) {
@@ -157,10 +161,10 @@ function drawWires() {
 
 function graphBounds() {
   return {
-    left: Math.min(0, ...graph.nodes.map((node) => node.x)),
+    left: Math.min(0, ...graph.nodes.map((node) => node.x - 50)),
     top: Math.min(0, ...graph.nodes.map((node) => node.y)),
-    right: Math.max(821, ...graph.nodes.map((node) => node.x + sizes.width)),
-    bottom: Math.max(460, ...graph.nodes.map((node) => node.y + (isSource(node) ? sizes.source : sizes.node)))
+    right: Math.max(1170, ...graph.nodes.map((node) => node.x + Math.max(sizeFor(node).width, 133))),
+    bottom: Math.max(377, ...graph.nodes.map((node) => node.y + sizeFor(node).height + (isSource(node) ? 0 : 49)))
   };
 }
 
@@ -175,11 +179,11 @@ function renderMinimap() {
     bottom: clamp((canvas.clientHeight - transform.y) / transform.scale, bounds.top, bounds.bottom)
   };
   $('#minimap').innerHTML = '<svg viewBox="' + [bounds.left, bounds.top, width, height].join(' ') + '" aria-hidden="true">' +
-    graph.nodes.map((node) => '<rect x="' + node.x + '" y="' + node.y + '" width="' + sizes.width +
-      '" height="' + (isSource(node) ? sizes.source : sizes.node) + '" rx="9" fill="' +
-      (node.id === selected ? '#ae90fa' : isSource(node) ? '#52756d' : '#696077') + '"/>').join('') +
+    graph.nodes.map((node) => '<rect x="' + node.x + '" y="' + node.y + '" width="' + sizeFor(node).width +
+      '" height="' + sizeFor(node).height + '" rx="9" fill="' +
+      (node.id === selected ? '#c64133' : isSource(node) ? '#7a9a87' : '#a69b90') + '"/>').join('') +
     '<rect x="' + viewport.x + '" y="' + viewport.y + '" width="' + (viewport.right - viewport.x) +
-    '" height="' + (viewport.bottom - viewport.y) + '" rx="10" fill="#9e7afa09" stroke="#a384ee" stroke-width="7"/></svg>';
+    '" height="' + (viewport.bottom - viewport.y) + '" rx="10" fill="#c6413309" stroke="#d6a89b" stroke-width="7"/></svg>';
 }
 
 function applyTransform(ease = false) {
@@ -194,21 +198,20 @@ function applyTransform(ease = false) {
   renderMinimap();
 }
 
-function fit(ease = true) {
+function fit(ease = true, focusStart = false) {
   const { clientWidth: width, clientHeight: height } = canvas;
   if (!width || !height) return;
   const bounds = graphBounds();
   const graphWidth = bounds.right - bounds.left;
   const graphHeight = bounds.bottom - bounds.top;
-  const heading = $('.canvas-heading');
-  const top = heading.offsetTop + heading.offsetHeight + 22;
-  const bottom = height - 79;
-  const margin = width < 450 ? 8 : 14;
-  const room = Math.max(150, bottom - top);
-  const scale = clamp(Math.min((width - 2 * margin) / graphWidth, room / graphHeight), .19, 1.1);
+  const top = 37;
+  const margin = width < 600 ? 9 : 24;
+  const room = Math.max(115, height - 92 - top);
+  const mobileStart = focusStart && width < 600;
+  const scale = mobileStart ? .77 : clamp(Math.min((width - 2 * margin) / graphWidth, room / graphHeight), .19, 1.14);
   transform = {
-    x: (width - graphWidth * scale) / 2 - bounds.left * scale,
-    y: top + Math.max(0, room - graphHeight * scale) * (width < 450 ? .3 : .5) - bounds.top * scale,
+    x: (mobileStart ? 6 : (width - graphWidth * scale) / 2) - bounds.left * scale,
+    y: top + Math.max(0, room - graphHeight * scale) * .28 - bounds.top * scale,
     scale
   };
   applyTransform(ease);
@@ -237,9 +240,19 @@ function setMode(nextMode) {
   canvas.classList.toggle('panning', mode === 'pan' || spaceDown);
 }
 
-function closeDrawers() {
-  inspector.classList.remove('open');
-  library.classList.remove('open');
+function setDrawer(drawer = null) {
+  inspector.hidden = drawer !== inspector;
+  library.hidden = drawer !== library;
+  for (const toggle of [$('#library-toggle'), $('#library-shortcut')]) {
+    toggle.setAttribute('aria-expanded', String(!library.hidden));
+  }
+}
+
+function toggleLibrary() {
+  const open = library.hidden;
+  if (open) showView('canvas');
+  setDrawer(open ? library : null);
+  if (open && !matchMedia('(pointer: coarse)').matches) search.focus();
 }
 
 function selectNode(id, open = true) {
@@ -250,10 +263,7 @@ function selectNode(id, open = true) {
   drawWires();
   renderMinimap();
   renderInspector();
-  if (id && open) {
-    library.classList.remove('open');
-    inspector.classList.add('open');
-  }
+  if (id && open) setDrawer(inspector);
 }
 
 function addNode(type, point) {
@@ -264,11 +274,11 @@ function addNode(type, point) {
     canvas.getBoundingClientRect().top + canvas.clientHeight * .68
   );
   const id = 'block-' + nextId++;
-  const source = catalog[type].tag === 'MCP';
+  const { width, height } = sizeFor({ type });
   graph.nodes.push({
     id, type,
-    x: Math.round(position.x - sizes.width / 2),
-    y: Math.round(position.y - (source ? sizes.source : sizes.node) / 2)
+    x: Math.round(position.x - width / 2),
+    y: Math.round(position.y - height / 2)
   });
   renderNodes();
   selectNode(id);
@@ -321,7 +331,7 @@ function startLink(port) {
 }
 
 function pointerDown(event) {
-  if (event.target.closest('.canvas-tools, .minimap')) return;
+  if (event.target.closest('.canvas-tools, .canvas-actions, .run-controls, .minimap')) return;
   if (![0, 1].includes(event.button)) return;
   const pan = mode === 'pan' || spaceDown || event.button === 1;
   const node = event.target.closest('.node');
@@ -399,7 +409,7 @@ function pointerUp(event) {
     selectNode(gesture.block.id);
   } else if (gesture.kind === 'pan' && !gesture.moved) {
     selectNode(null);
-    closeDrawers();
+    setDrawer();
   }
   gesture = null;
   canvas.classList.remove('dragging');
@@ -408,7 +418,8 @@ function pointerUp(event) {
 function renderInspector() {
   if (selectedEdge !== null) {
     const edge = graph.edges[selectedEdge];
-    inspector.innerHTML = '<div class="inspector-empty"><h2>Связь блоков</h2><p>' +
+    inspector.innerHTML = '<div class="inspector-empty"><div class="drawer-heading"><h2>Связь блоков</h2>' +
+      '<button class="button icon-button quiet" data-action="close" aria-label="Скрыть настройки">' + icon('x') + '</button></div><p>' +
       catalog[nodeById(edge.from).type].title + ' → ' + catalog[nodeById(edge.to).type].title +
       '</p></div><div class="inspector-bottom"><button class="button" data-action="remove">' + icon('trash') + 'Удалить связь</button></div>';
     return;
@@ -518,6 +529,7 @@ function startRun() {
   reviewNotes = '';
   preview = { step: 0, doctor: 0, slot: '10:30' };
   activeRun = { current: null, order, done: [], events: [], state: 'running' };
+  setDrawer();
   showView('canvas');
   nextStep();
 }
@@ -572,7 +584,6 @@ function finishRun(status) {
   });
   renderProgress();
   if (status === 'Завершён' && ready) {
-    closeDrawers();
     showView('prototype');
     notify('Прототип готов');
   } else if (status === 'Завершён') {
@@ -585,7 +596,9 @@ function finishRun(status) {
 function renderRuns() {
   const live = ['running', 'review'].includes(activeRun?.state);
   const entries = live ? [{ status: activeRun.state === 'review' ? 'Ожидает ревью' : 'Выполняется', events: activeRun.events }, ...logs] : logs;
-  $('#runs-view').innerHTML = '<h1>Запуски</h1><p>История прохождения демонстрационного сценария.</p>' +
+  const action = entries.length ? runAction(live ? 'Остановить' : 'Запустить демо', live ? 'stop' : 'play') : '';
+  $('#runs-view').innerHTML = '<div class="view-heading"><h1>Запуски</h1>' + action + '</div>' +
+    '<p>История прохождения демонстрационного сценария.</p>' +
     (entries.length ? entries.map((entry, index) =>
       '<details class="log"' + (index === 0 ? ' open' : '') + '><summary>' +
       entry.status + (entry.date ? ' · ' + entry.date : '') + '</summary>' +
@@ -602,9 +615,14 @@ const doctors = [
 ];
 const slots = ['10:30', '11:45', '14:15'];
 
+function runAction(label, symbol) {
+  return '<button class="button" data-view-action="run">' + icon(symbol) + label + '</button>';
+}
+
 function renderPrototype() {
   const root = $('#prototype-view');
-  const heading = '<h1>Кликабельный прототип</h1>';
+  const heading = '<div class="view-heading"><h1>Кликабельный прототип</h1>' +
+    (ready ? runAction('Повторить демо', 'reset') : '') + '</div>';
   if (!ready) {
     root.innerHTML = heading + '<p>Здесь появится интерактивный результат сценария.</p><div class="empty-state">' +
       badge({ icon: 'layout', color: 'pink' }) + '<h2>Прототип ещё не собран</h2>' +
@@ -640,10 +658,11 @@ function showView(view) {
     tab.setAttribute('aria-current', active ? 'page' : 'false');
     $('#' + tab.dataset.view + '-view').hidden = !active;
   }
-  if (view !== 'canvas') closeDrawers();
+  $('#editor-shortcut').classList.toggle('active', view === 'canvas');
+  if (view !== 'canvas') setDrawer();
   if (view === 'runs') renderRuns();
   if (view === 'prototype') renderPrototype();
-  if (view === 'canvas' && !initialFit) fit(false);
+  if (view === 'canvas' && !initialFit) fit(false, true);
 }
 
 function toggleMenu(isOpen) {
@@ -657,19 +676,19 @@ function resetDemo() {
   activeRun = null;
   logs = [];
   ready = false;
-  selected = 'task';
+  selected = null;
   selectedEdge = null;
   inspectorTab = 'settings';
   link = null;
   search.value = '';
-  closeDrawers();
+  setDrawer();
   toggleMenu(false);
   setMode('select');
   showView('canvas');
   renderLibrary();
   renderProgress();
   renderInspector();
-  fit();
+  fit(true, true);
   notify('Демо сброшено');
 }
 
@@ -719,7 +738,7 @@ canvas.addEventListener('click', (event) => {
   drawWires();
   renderMinimap();
   renderInspector();
-  inspector.classList.add('open');
+  setDrawer(inspector);
 });
 canvas.addEventListener('keydown', (event) => {
   if (!['Enter', ' '].includes(event.key)) return;
@@ -751,10 +770,10 @@ inspector.addEventListener('click', (event) => {
   }
   switch (button.dataset.action) {
     case 'remove': removeSelected(); break;
-    case 'close': selectNode(null); closeDrawers(); break;
+    case 'close': selectNode(null); setDrawer(); break;
     case 'continue':
       if (activeRun?.state === 'review') {
-        closeDrawers();
+        setDrawer();
         completeStep();
       }
       break;
@@ -793,27 +812,23 @@ $('#zoom-in').addEventListener('click', () => zoom(1.18));
 $('#zoom-out').addEventListener('click', () => zoom(1 / 1.18));
 $('#fit').addEventListener('click', () => fit());
 $('#minimap').addEventListener('click', () => fit());
-$('#mobile-library').addEventListener('click', () => {
-  inspector.classList.remove('open');
-  library.classList.toggle('open');
-  if (library.classList.contains('open')) search.focus();
-});
-$('#mobile-inspector').addEventListener('click', () => {
-  library.classList.remove('open');
-  inspector.classList.toggle('open');
-});
+$('#library-toggle').addEventListener('click', toggleLibrary);
+$('#library-shortcut').addEventListener('click', toggleLibrary);
+$('#close-library').addEventListener('click', () => setDrawer());
+$('#editor-shortcut').addEventListener('click', () => showView('canvas'));
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     finishLink(null);
-    closeDrawers();
+    setDrawer();
     toggleMenu(false);
     return;
   }
   if (event.target.matches('input, textarea, button, summary') || event.ctrlKey || event.metaKey || event.altKey) return;
   if (event.key === '/') {
     event.preventDefault();
-    library.classList.add('open');
+    showView('canvas');
+    setDrawer(library);
     search.focus();
   }
   if (currentView !== 'canvas') return;
@@ -841,7 +856,7 @@ window.addEventListener('blur', () => {
   setMode(mode);
 });
 new ResizeObserver(() => {
-  if (currentView === 'canvas' && !gesture) fit(false);
+  if (currentView === 'canvas' && !gesture) fit(false, true);
 }).observe(canvas);
 renderLibrary();
 renderNodes();
